@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
-project(umrt-arm-firmware-lib)
+project(openFrameworksArduino)
 
 # ********** Setup CMake **********
 
@@ -21,71 +21,70 @@ if(NOT WIN32)
 endif()
 
 # Setup Boost
-find_package(Boost REQUIRED COMPONENTS log log_setup)
+find_package(Boost REQUIRED COMPONENTS thread)
 include_directories(${Boost_INCLUDE_DIRS})
 
-# Setup openFrameworksArduino
-add_subdirectory(include/openFrameworksArduino)
+# ********** Setup openFrameworksArduino library **********
 
-# ********** Setup umrt_arm_firmware_lib library **********
-
-set(umrt_arm_firmware_lib_sources
-        src/StepperController.cpp
+set(openFrameworksArduino_sources
+        src/ofArduino.cpp
+        src/ofSerial.cpp
+        src/ofSerialLinux.cpp
+        src/ofSerialWin.cpp
         )
 set_source_files_properties(
-        ${umrt_arm_firmware_lib_sources}
+        ${openFrameworksArduino_sources}
         PROPERTIES language "CXX")
 add_library(
         ${PROJECT_NAME}
-        ${umrt_arm_firmware_lib_sources})
+        ${openFrameworksArduino_sources})
 target_include_directories(${PROJECT_NAME} PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/openFrameworksArduino/openFrameworksArduino/src>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/${PROJECT_NAME}>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/openFrameworksArduino/openFrameworksArduino/src>"
-        "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-        "$<INSTALL_INTERFACE:include/openFrameworksArduino/openFrameworksArduino/src>")
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src/>"
+        "$<INSTALL_INTERFACE:src/${PROJECT_NAME}>")
 
 
 target_link_libraries(${PROJECT_NAME}
         ${Boost_LIBRARIES}
-        openFrameworksArduino
         )
 
 set(public_headers
-        include/umrt-arm-firmware-lib/StepperController.h
-        include/umrt-arm-firmware-lib/SYSEX_COMMANDS.h
-        include/umrt-arm-firmware-lib/Utils.h
+        src/ofArduino.h
+        src/ofConstants.h
+        src/ofSerial.h
+        src/ofSerialLinux.h
+        src/ofSerialWin.h
+        src/ofTypes.h
         )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${public_headers}")
 
-# ********** Setup communication_test_script executable **********
+# ********** Setup ArduinoTest executable **********
 
-set(communication_test_target communication_test_script)
-set(communication_test_script_sources
-        src/CommunicationTestScript.cpp
+set(arduino_test_target ArduinoTest)
+set(arduino_test_sources
+        examples/ArduinoTest.cpp
+        examples/HexapodTimingTest.cpp
+        examples/PlaybackMovements.cpp
+        examples/Test.cpp
         )
 set_source_files_properties(
-        ${communication_test_script_sources}
+        ${arduino_test_sources}
         PROPERTIES language "CXX")
 add_executable(
-        ${communication_test_target}
-        ${communication_test_script_sources})
-target_include_directories(${communication_test_target} PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/openFrameworksArduino/openFrameworksArduino/src>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/openFrameworksArduino/openFrameworksArduino/src>"
-        "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-        "$<INSTALL_INTERFACE:include/openFrameworksArduino/openFrameworksArduino/src>")
+        ${arduino_test_target}
+        ${arduino_test_sources})
+target_include_directories(${arduino_test_target} PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/examples>"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/examples>"
+        "$<INSTALL_INTERFACE:examples/${PROJECT_NAME}>")
 
-target_link_libraries(${communication_test_target}
+target_link_libraries(${arduino_test_target}
         ${PROJECT_NAME}
         )
 
-set_target_properties(${communication_test_target} PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(${arduino_test_target} PROPERTIES LINKER_LANGUAGE CXX)
 
 # ********** Setup packaging **********
 
@@ -97,9 +96,9 @@ install(TARGETS ${PROJECT_NAME}
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         )
 
-install(TARGETS ${communication_test_target}
-        EXPORT "${communication_test_target}Targets"
-        COMPONENT ${communication_test_target}
+install(TARGETS ${arduino_test_target}
+        EXPORT "${arduino_test_target}Targets"
+        COMPONENT ${arduino_test_target}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         )
