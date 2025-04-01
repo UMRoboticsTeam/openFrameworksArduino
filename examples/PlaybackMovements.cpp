@@ -162,7 +162,7 @@ void PlaybackMovements::update()
 				sendDynamixelSynchMoveAdd(servoIDs[j], convertFromMx64ToAx12(servoCommands[m_iCurrentTimeStep][j]), 50);
 			sendDynamixelSynchMoveExecute();
 
-			boost::this_thread::sleep(boost::posix_time::milliseconds(1000*timeVecDiff[m_iCurrentTimeStep]));
+			boost::this_thread::sleep(boost::posix_time::milliseconds((unsigned long long)(1000*timeVecDiff[m_iCurrentTimeStep])));
 
 			ofArduino::update();
 
