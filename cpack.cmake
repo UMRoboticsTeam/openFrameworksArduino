@@ -1,4 +1,4 @@
-set(MAINTAINER_NAME "Noah Reeder <noahreederatc@gmail.com>")
+set(MAINTAINER_NAME "David Cofer <dcofer@neurorobotictech.com>")
 
 # Parse version number from file
 file(READ "version" version_input)
@@ -8,7 +8,7 @@ set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
 set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
 
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Shared code for University of Manitoba Robotics Team's robotic arm"
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Subset of openFrameworks Firmata library, see https://github.com/NeuroRoboticTech/openFrameworksArduino"
         CACHE STRING "Package description for the package metadata"
         )
 set(CPACK_PACKAGE_VENDOR "University of Manitoba Robotics Team")
