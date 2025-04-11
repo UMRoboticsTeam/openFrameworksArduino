@@ -54,7 +54,7 @@ target_include_directories(${lib_target} PUBLIC # Everything in this folder will
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src/>"
         "$<INSTALL_INTERFACE:include/>")
 
-target_link_libraries(${lib_target}
+target_link_libraries(${lib_target} PRIVATE
         ${Boost_LIBRARIES}
         )
 
