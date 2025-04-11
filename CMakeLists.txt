@@ -52,7 +52,7 @@ set_property(TARGET ${lib_target} PROPERTY PUBLIC_HEADER ${public_headers})
 target_include_directories(${lib_target} PUBLIC # Everything in this folder will be available during building
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>"
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src/>"
-        "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>")
+        "$<INSTALL_INTERFACE:include/>")
 
 target_link_libraries(${lib_target}
         ${Boost_LIBRARIES}
