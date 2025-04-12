@@ -55,7 +55,7 @@ target_include_directories(${lib_target} PUBLIC # Everything in this folder will
         "$<INSTALL_INTERFACE:include/>")
 
 target_link_libraries(${lib_target} PRIVATE
-        ${Boost_LIBRARIES}
+        Boost::thread
         )
 
 # ********** Setup ArduinoTest executable **********
