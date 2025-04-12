@@ -4,21 +4,21 @@ project(openFrameworksArduino)
 # ********** Setup CMake **********
 
 # Default to C++17
-if(NOT CMAKE_CXX_STANDARD)
-        set(CMAKE_CXX_STANDARD 17)
-endif()
+if (NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+endif ()
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        # enables building a static library but later link it into a dynamic library
-        add_compile_options(-fPIC)
-endif()
-if(NOT WIN32)
-        # About -Wno-sign-conversion: With Clang, -Wconversion implies -Wsign-conversion. There are a number of
-        # implicit sign conversions in gtest.cc, see https://ci.ros2.org/job/ci_osx/9381/clang/.
-        # Hence disabling -Wsign-conversion for now until all those have eventually been fixed.
-        # (from https://github.com/ros2/rcutils/pull/263#issuecomment-663252537)
-        add_compile_options(-Wall -Wextra -Wconversion -Wno-sign-conversion -Wpedantic)
-endif()
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # enables building a static library but later link it into a dynamic library
+    add_compile_options(-fPIC)
+endif ()
+if (NOT WIN32)
+    # About -Wno-sign-conversion: With Clang, -Wconversion implies -Wsign-conversion. There are a number of
+    # implicit sign conversions in gtest.cc, see https://ci.ros2.org/job/ci_osx/9381/clang/.
+    # Hence disabling -Wsign-conversion for now until all those have eventually been fixed.
+    # (from https://github.com/ros2/rcutils/pull/263#issuecomment-663252537)
+    add_compile_options(-Wall -Wextra -Wconversion -Wno-sign-conversion -Wpedantic)
+endif ()
 
 # Setup Boost
 find_package(Boost REQUIRED COMPONENTS thread)
@@ -26,82 +26,95 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 # ********** Setup openFrameworksArduino library **********
 
-set(openFrameworksArduino_sources
+set(lib_target ${PROJECT_NAME})
+
+add_library(${lib_target})
+
+target_sources(${lib_target} PRIVATE # These files will only be available during building
         src/ofArduino.cpp
         src/ofSerial.cpp
         src/ofSerialLinux.cpp
         src/ofSerialWin.cpp
         )
-set_source_files_properties(
-        ${openFrameworksArduino_sources}
-        PROPERTIES language "CXX")
-add_library(
-        ${PROJECT_NAME}
-        ${openFrameworksArduino_sources})
-target_include_directories(${PROJECT_NAME} PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src/>"
-        "$<INSTALL_INTERFACE:src/${PROJECT_NAME}>")
 
-
-target_link_libraries(${PROJECT_NAME}
-        ${Boost_LIBRARIES}
-        )
-
-set(public_headers
+# Locate headers
+# Using FILE_SET would be much cleaner, but needs CMake 3.23+ and ROS Humble ships with 3.22
+set(public_headers # These files will be installed with the library
         src/ofArduino.h
         src/ofConstants.h
         src/ofSerial.h
         src/ofSerialLinux.h
         src/ofSerialWin.h
         src/ofTypes.h
+        src/StdAfx.h
         )
+set_property(TARGET ${lib_target} PROPERTY PUBLIC_HEADER ${public_headers})
+target_include_directories(${lib_target} PUBLIC # Everything in this folder will be available during building
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/>"
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/src/>"
+        "$<INSTALL_INTERFACE:include/>")
 
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER "${public_headers}")
+target_link_libraries(${lib_target} PRIVATE
+        Boost::thread
+        )
 
 # ********** Setup ArduinoTest executable **********
 
 set(arduino_test_target ArduinoTest)
-set(arduino_test_sources
+
+add_executable(${arduino_test_target})
+
+target_sources(${arduino_test_target} PRIVATE
         examples/ArduinoTest.cpp
         examples/HexapodTimingTest.cpp
         examples/PlaybackMovements.cpp
         examples/Test.cpp
         )
-set_source_files_properties(
-        ${arduino_test_sources}
-        PROPERTIES language "CXX")
-add_executable(
-        ${arduino_test_target}
-        ${arduino_test_sources})
-target_include_directories(${arduino_test_target} PUBLIC
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/examples>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/examples>"
-        "$<INSTALL_INTERFACE:examples/${PROJECT_NAME}>")
 
 target_link_libraries(${arduino_test_target}
-        ${PROJECT_NAME}
+        ${lib_target}
         )
-
-set_target_properties(${arduino_test_target} PROPERTIES LINKER_LANGUAGE CXX)
 
 # ********** Setup packaging **********
 
 include(GNUInstallDirs)
-install(TARGETS ${PROJECT_NAME}
-        EXPORT "${PROJECT_NAME}Targets"
-        COMPONENT ${PROJECT_NAME}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+include(CMakePackageConfigHelpers)
+
+# Parse version number from the file
+file(READ "version" version_input)
+string(REGEX MATCH "([0-9]+)\.([0-9]+)\.([0-9]+)" _ ${version_input})
+
+# Fill in cmake variables in config template
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/config.in.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+        @ONLY
+)
+
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        VERSION ${version_input}
+        COMPATIBILITY AnyNewerVersion
+)
+
+install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
         )
 
-install(TARGETS ${arduino_test_target}
-        EXPORT "${arduino_test_target}Targets"
-        COMPONENT ${arduino_test_target}
+install(
+        TARGETS ${lib_target} ${arduino_test_target} # These targets will be packaged
+        EXPORT ${PROJECT_NAME}Targets
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        )
+)
+
+install(
+        EXPORT ${PROJECT_NAME}Targets
+        NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}
+)
 
 message(STATUS "Components to pack: ${CPACK_COMPONENTS_ALL}")
 include(cpack.cmake)
+
